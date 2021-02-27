@@ -1,0 +1,53 @@
+------------------------------------------------------------
+TimeQuest Timing Analyzer Summary
+------------------------------------------------------------
+
+Type  : Slow Model Setup 'PIX'
+Slack : 6.196
+TNS   : 0.000
+
+Type  : Slow Model Setup 'CLK'
+Slack : 15.094
+TNS   : 0.000
+
+Type  : Slow Model Hold 'PIX'
+Slack : -0.384
+TNS   : -0.737
+
+Type  : Slow Model Hold 'CLK'
+Slack : 0.445
+TNS   : 0.000
+
+Type  : Slow Model Minimum Pulse Width 'CLK'
+Slack : 8.889
+TNS   : 0.000
+
+Type  : Slow Model Minimum Pulse Width 'PIX'
+Slack : 18.889
+TNS   : 0.000
+
+Type  : Fast Model Setup 'CLK'
+Slack : 18.131
+TNS   : 0.000
+
+Type  : Fast Model Setup 'PIX'
+Slack : 20.092
+TNS   : 0.000
+
+Type  : Fast Model Hold 'PIX'
+Slack : -0.776
+TNS   : -1.548
+
+Type  : Fast Model Hold 'CLK'
+Slack : 0.215
+TNS   : 0.000
+
+Type  : Fast Model Minimum Pulse Width 'CLK'
+Slack : 9.000
+TNS   : 0.000
+
+Type  : Fast Model Minimum Pulse Width 'PIX'
+Slack : 19.000
+TNS   : 0.000
+
+------------------------------------------------------------

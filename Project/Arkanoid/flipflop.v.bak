@@ -1,0 +1,128 @@
+module flipflop(clk,rst,i_xdirpal,i_ydirpal,i_xnav,i_ynav,i_xpal,i_ypal,i_xbri1,i_ybri1,i_xbri2,i_ybri2,i_xbri3,i_ybri3,
+				i_xbri4,i_ybri4,i_xbri5,i_ybri5,i_xbri6,i_ybri6,i_xbri7,i_ybri7,i_xbri8,i_ybri8, i_xbri9,i_ybri9,i_xbri10,i_ybri10,
+				o_xdirpal,o_ydirpal,o_xnav,o_ynav,o_xpal,o_ypal,o_xbri1,o_ybri1,o_xbri2,o_ybri2,o_xbri3,o_ybri3,o_xbri4,o_ybri4,o_xbri5,
+				o_ybri5,o_xbri6,o_ybri6,o_xbri7,o_ybri7,o_xbri8,o_ybri8,o_xbri9,o_ybri9,o_xbri10,o_ybri10,
+				i_life, o_life, i_brick, o_brick, i_red1, i_red2, i_red3, i_red4, i_blue5, i_blue6, i_blue7, o_red1,o_red2,o_red3,o_red4,
+				o_blue5, o_blue6, o_blue7
+);
+
+input clk,rst;
+input [11:0] i_xdirpal,i_ydirpal,i_xnav,i_ynav,i_xpal,i_ypal,i_xbri1,i_ybri1,i_xbri2,i_ybri2,i_xbri3;
+input [11:0] i_ybri3,i_xbri4,i_ybri4,i_xbri5,i_ybri5,i_xbri6,i_ybri6,i_xbri7,i_ybri7,i_xbri8,i_ybri8;
+input [11:0] i_xbri9,i_ybri9,i_xbri10,i_ybri10; //ingressi flipflop
+output reg [11:0] o_xdirpal,o_ydirpal,o_xnav,o_ynav,o_xpal,o_ypal,o_xbri1,o_ybri1;
+output reg [11:0] o_xbri2,o_ybri2,o_xbri3,o_ybri3,o_xbri4,o_ybri4,o_xbri5,o_ybri5;
+output reg [11:0] o_xbri6,o_ybri6,o_xbri7,o_ybri7,o_xbri8,o_ybri8,o_xbri9,o_ybri9,o_xbri10,o_ybri10;//uscite flipflop
+output reg [11:0] o_life,o_brick;
+
+input [11:0]  i_life, i_brick;
+input [11:0] i_red1, i_red2, i_red3, i_red4;
+input[11:0] i_blue5, i_blue6, i_blue7;
+output reg [11:0]  o_red1,o_red2,o_red3,o_red4;
+output reg [11:0]   o_blue5, o_blue6, o_blue7;
+
+parameter IX_BRI1 = 12'd 180;
+parameter IY_BRI1 = 12'd 50;
+parameter IX_BRI2 = 12'd 274;
+parameter IY_BRI2 = 12'd 50;
+parameter IX_BRI3 = 12'd 368;
+parameter IY_BRI3 = 12'd 50;
+parameter IX_BRI4 = 12'd 462;
+parameter IY_BRI4 = 12'd 50;
+parameter IX_BRI5 = 12'd 226;
+parameter IY_BRI5 = 12'd 90;
+parameter IX_BRI6 = 12'd 320;	
+parameter IY_BRI6 = 12'd 90;
+parameter IX_BRI7 = 12'd 414;	
+parameter IY_BRI7 = 12'd 90;
+parameter IX_BRI8 = 12'd 274;	
+parameter IY_BRI8 = 12'd 130;
+parameter IX_BRI9 = 12'd 368;	
+parameter IY_BRI9 = 12'd 130;
+parameter IX_BRI10 = 12'd 320;	
+parameter IY_BRI10 = 12'd 170;
+parameter IX_NAV = 12'd 320;	//coordinata x iniziale del centro della navicella
+parameter IY_NAV = 12'd 470;
+parameter IX_PAL = 12'd 320;	//coordinata x iniziale del centro della palla
+parameter IY_PAL = 12'd 450;
+parameter vite = 12'd 3;
+parameter blocchi = 12'd 3;
+parameter RED = 12'd 3;
+parameter BLUE = 12'd 2;
+
+always@(posedge clk)
+	if(rst) begin							//se reset condizioni iniziali
+				o_xbri1<=IX_BRI1;
+				o_xbri2<=IX_BRI2;
+				o_xbri3<=IX_BRI3;
+				o_xbri4<=IX_BRI4;
+				o_xbri5<=IX_BRI5;
+				o_xbri6<=IX_BRI6;
+				o_xbri7<=IX_BRI7;
+				o_xbri8<=IX_BRI8;
+				o_xbri9<=IX_BRI9;
+				o_xbri10<=IX_BRI10;
+				o_xdirpal<=12'b0;
+				o_xnav<=IX_NAV;
+				o_xpal<=IX_PAL;
+				o_ybri1<=IY_BRI1;
+				o_ybri2<=IY_BRI2;
+				o_ybri3<=IY_BRI3;
+				o_ybri4<=IY_BRI4;
+				o_ybri5<=IY_BRI5;
+				o_ybri6<=IY_BRI6;
+				o_ybri7<=IY_BRI7;
+				o_ybri8<=IY_BRI8;
+				o_ybri9<=IY_BRI9;
+				o_ybri10<=IY_BRI10;
+				o_ydirpal<=12'b0;
+				o_ynav<=IY_NAV;
+				o_ypal<=IY_PAL;				
+				o_life<=vite;
+				o_brick<=blocchi;
+				o_blue5<=BLUE;
+				o_blue6<=BLUE;
+				o_blue7<=BLUE;
+				o_red1<=RED;
+				o_red2<=RED;
+				o_red3<=RED;
+				o_red4<=RED;
+			end
+	else	begin							//sennò campionamento
+				o_xbri1<=i_xbri1;
+				o_xbri2<=i_xbri2;
+				o_xbri3<=i_xbri3;
+				o_xbri4<=i_xbri4;
+				o_xbri5<=i_xbri5;
+				o_xbri6<=i_xbri6;
+				o_xbri7<=i_xbri7;
+				o_xbri8<=i_xbri8;
+				o_xbri9<=i_xbri9;
+				o_xbri10<=i_xbri10;
+				o_xdirpal<=i_xdirpal;
+				o_xnav<=i_xnav;
+				o_xpal<=i_xpal;
+				o_ybri1<=i_ybri1;
+				o_ybri2<=i_ybri2;
+				o_ybri3<=i_ybri3;
+				o_ybri4<=i_ybri4;
+				o_ybri5<=i_ybri5;
+				o_ybri6<=i_ybri6;
+				o_ybri7<=i_ybri7;
+				o_ybri8<=i_ybri8;
+				o_ybri9<=i_ybri9;
+				o_ybri10<=i_ybri10;
+				o_ydirpal<=i_ydirpal;
+				o_ynav<=i_ynav;
+				o_ypal<=i_ypal;
+				o_life<=i_life;
+				o_brick<=i_brick;
+				o_blue5<=i_blue5;
+				o_blue6<=i_blue6;
+				o_blue7<=i_blue7;
+				o_red1<=i_red1;
+				o_red2<=i_red2;
+				o_red3<=i_red3;
+				o_red4<=i_red4;
+			end
+endmodule

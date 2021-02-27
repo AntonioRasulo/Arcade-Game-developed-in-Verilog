@@ -1,0 +1,973 @@
+module navicellapalla (
+	i_ani_stb,i_clk, i_rst, i_animate, i_dx, i_sx, i_start, o_x1_pal, o_x2_pal, o_y1_pal, o_y2_pal, o_x1_nav, o_x2_nav, o_y1_nav, o_y2_nav,
+	o_x1_brick1,o_x2_brick1,o_y1_brick1, o_y2_brick1, o_x1_brick2,o_x2_brick2,o_y1_brick2, o_y2_brick2,
+	o_x1_brick3,o_x2_brick3,o_y1_brick3, o_y2_brick3,o_x1_brick4,o_x2_brick4,o_y1_brick4, o_y2_brick4,o_x1_brick5,o_x2_brick5,o_y1_brick5, o_y2_brick5,
+	o_x1_brick6,o_x2_brick6,o_y1_brick6, o_y2_brick6,o_x1_brick7,o_x2_brick7,o_y1_brick7, o_y2_brick7,o_x1_brick8,o_x2_brick8,o_y1_brick8, o_y2_brick8
+	,o_x1_brick9,o_x2_brick9,o_y1_brick9, o_y2_brick9,o_x1_brick10,o_x2_brick10,o_y1_brick10, o_y2_brick10, ok, ko,
+	pin0,pin1,pin2,pin3,pin4,pin5,pin6
+);
+
+input i_ani_stb, i_clk, i_rst, i_animate, i_dx, i_sx, i_start;
+
+output [11:0] o_x1_pal, o_x2_pal, o_y1_pal, o_y2_pal, o_x1_nav, o_x2_nav, o_y1_nav, o_y2_nav;
+output [11:0] o_x1_brick1,o_x2_brick1,o_y1_brick1, o_y2_brick1, o_x1_brick2,o_x2_brick2,o_y1_brick2, o_y2_brick2;
+output [11:0] o_x1_brick3,o_x2_brick3,o_y1_brick3, o_y2_brick3, o_x1_brick4,o_x2_brick4,o_y1_brick4, o_y2_brick4;
+output [11:0] o_x1_brick5,o_x2_brick5,o_y1_brick5, o_y2_brick5, o_x1_brick6,o_x2_brick6,o_y1_brick6, o_y2_brick6;
+output [11:0] o_x1_brick7,o_x2_brick7,o_y1_brick7, o_y2_brick7, o_x1_brick8,o_x2_brick8,o_y1_brick8, o_y2_brick8;
+output [11:0] o_x1_brick9,o_x2_brick9,o_y1_brick9, o_y2_brick9, o_x1_brick10,o_x2_brick10,o_y1_brick10, o_y2_brick10;
+output reg ok,ko;												//vittoria o sconfitta
+output reg pin0,pin1,pin2,pin3,pin4,pin5,pin6;		//7 segment display
+
+wire [11:0] ff_x_bri1, ff_x_bri2, ff_x_bri3, ff_y_bri1, ff_y_bri2, ff_y_bri3,ff_x_bri4, ff_x_bri5;
+wire [11:0] ff_x_bri6, ff_y_bri4, ff_y_bri5, ff_y_bri6, ff_x_bri7, ff_x_bri8, ff_x_bri9, ff_x_bri10;
+wire [11:0] ff_y_bri7, ff_y_bri8,ff_y_bri9,ff_y_bri10;
+wire [11:0] ff_x_nav,ff_y_nav,ff_x_pal,ff_y_pal;	//coordinate che (continua frase sotto)
+wire ff_x_dirpal,ff_y_dirpal;								//arrivano dal flipflop (questa frase è il continuo della frase di sopra)
+wire [11:0] ff_brick,ff_life;
+wire [11:0] ff_red1,ff_red2,ff_red3,ff_red4;
+wire [11:0] ff_blue5,ff_blue6,ff_blue7;
+
+parameter H_SIZE_BRI = 12'd 32;	//metà larghezza brick
+parameter L_SIZE_BRI = 12'd 10; //metà altezza brick
+parameter H_SIZE_NAV = 12'd 32; //metà della larghezza della nave
+parameter L_SIZE_NAV = 12'd 3;  //metà dell'altezza della nave
+parameter IX_BRI1 = 12'd 180;
+parameter IY_BRI1 = 12'd 50;
+parameter IX_BRI2 = 12'd 274;
+parameter IY_BRI2 = 12'd 50;
+parameter IX_BRI3 = 12'd 368;
+parameter IY_BRI3 = 12'd 50;
+parameter IX_BRI4 = 12'd 462;
+parameter IY_BRI4 = 12'd 50;
+parameter IX_BRI5 = 12'd 226;
+parameter IY_BRI5 = 12'd 90;
+parameter IX_BRI6 = 12'd 320;	
+parameter IY_BRI6 = 12'd 90;
+parameter IX_BRI7 = 12'd 414;	
+parameter IY_BRI7 = 12'd 90;
+parameter IX_BRI8 = 12'd 274;	
+parameter IY_BRI8 = 12'd 130;
+parameter IX_BRI9 = 12'd 368;	
+parameter IY_BRI9 = 12'd 130;
+parameter IX_BRI10 = 12'd 320;	
+parameter IY_BRI10 = 12'd 170;
+parameter IX_NAV = 12'd 320;	//coordinata x iniziale del centro della navicella
+parameter IY_NAV = 12'd 470;	//coordinata y iniziale del centro della navicella
+parameter D_WIDTH = 12'd 640;   //larghezza schermo
+parameter D_HEIGHT = 12'd 480;	//altezza schermo
+parameter H_SIZE_PAL = 12'd 3;	//metà della larghezza della palla
+parameter IX_PAL = 12'd 320;	//coordinata x iniziale del centro della palla
+parameter IY_PAL = 12'd 460; 	//coordinata y iniziale del centro della palla
+parameter vite = 12'd 3;
+parameter blocchi = 12'd 3;
+parameter IPIN0= 1'b0;			//attivo basso per costruire il 3
+parameter IPIN1= 1'b0;			//attivo basso per costruire il 3
+parameter IPIN2= 1'b0;			//attivo basso per costruire il 3
+parameter IPIN3= 1'b0;			//attivo basso per costruire il 3
+parameter IPIN4= 1'b1;
+parameter IPIN5= 1'b1;
+parameter IPIN6= 1'b0;			//attivo basso per costruire il 3
+parameter ROSSO = 12'd 3;
+parameter BLU = 12'd 2;
+
+parameter wait1=4'b 0000;
+parameter s0=4'b 0001;
+parameter val=4'b 0010;
+parameter win=4'b 0100;
+parameter go=4'b 1000;
+
+reg [3:0] snext,sreg;
+
+reg[11:0] x_bri1;
+reg[11:0] y_bri1;
+reg[11:0] x_bri2;
+reg[11:0] y_bri2;
+reg[11:0] x_bri3;
+reg[11:0] y_bri3;
+reg[11:0] x_bri4;
+reg[11:0] y_bri4;
+reg[11:0] x_bri5;
+reg[11:0] y_bri5;
+reg[11:0] x_bri6;
+reg[11:0] y_bri6;
+reg[11:0] x_bri7;
+reg[11:0] y_bri7;
+reg[11:0] x_bri8;
+reg[11:0] y_bri8;
+reg[11:0] x_bri9;
+reg[11:0] y_bri9;
+reg[11:0] x_bri10;
+reg[11:0] y_bri10;
+reg[11:0] x_nav;		//coordinata x del centro della navicella
+reg[11:0] y_nav;		//coordinata y del centro della navicella
+reg[11:0] x_pal;		//coordinata x del centro della palla
+reg[11:0] y_pal;		//coordinata y del centro della palla
+reg x_dir_pal;					//reg x_dir_pal= IX_DIR_PAL;  se vale 1 palla a dx, vale 0 palla a sx, vale 2 palla ferma
+reg y_dir_pal;					//reg y_dir_pal= IY_DIR_PAL;
+reg [11:0] life;
+reg [11:0] brick;
+reg [11:0] red1,red2,red3,red4;
+reg [11:0] blue5,blue6,blue7;
+ 
+assign o_x1_brick1 = x_bri1 - H_SIZE_BRI; //coordinata x del lato sx del brick1
+assign o_x2_brick1 = x_bri1 + H_SIZE_BRI; //coordinata x del lato dx del brick1
+assign o_y1_brick1 = y_bri1 - L_SIZE_BRI;	//coordinata y del lato alto del brick1
+assign o_y2_brick1 = y_bri1 + L_SIZE_BRI;	//coordinata y del lato basso del brick1
+assign o_x1_brick2 = x_bri2 - H_SIZE_BRI; //coordinata x del lato sx del brick2
+assign o_x2_brick2 = x_bri2 + H_SIZE_BRI; //coordinata x del lato dx del brick2
+assign o_y1_brick2 = y_bri2 - L_SIZE_BRI;	//coordinata y del lato alto del brick2
+assign o_y2_brick2 = y_bri2 + L_SIZE_BRI;	//coordinata y del lato basso del brick2
+assign o_x1_brick3 = x_bri3 - H_SIZE_BRI; //coordinata x del lato sx del brick3
+assign o_x2_brick3 = x_bri3 + H_SIZE_BRI; //coordinata x del lato dx del brick3
+assign o_y1_brick3 = y_bri3 - L_SIZE_BRI;	//coordinata y del lato alto del brick3
+assign o_y2_brick3 = y_bri3 + L_SIZE_BRI;	//coordinata y del lato basso del brick3
+assign o_x1_brick4 = x_bri4 - H_SIZE_BRI; 
+assign o_x2_brick4 = x_bri4 + H_SIZE_BRI;
+assign o_y1_brick4 = y_bri4 - L_SIZE_BRI;	
+assign o_y2_brick4 = y_bri4 + L_SIZE_BRI;	
+assign o_x1_brick5 = x_bri5 - H_SIZE_BRI;
+assign o_x2_brick5 = x_bri5 + H_SIZE_BRI; 
+assign o_y1_brick5 = y_bri5 - L_SIZE_BRI;	
+assign o_y2_brick5 = y_bri5 + L_SIZE_BRI;	
+assign o_x1_brick6 = x_bri6 - H_SIZE_BRI; 
+assign o_x2_brick6 = x_bri6 + H_SIZE_BRI; 
+assign o_y1_brick6 = y_bri6 - L_SIZE_BRI;	
+assign o_y2_brick6 = y_bri6 + L_SIZE_BRI;	
+assign o_x1_brick7 = x_bri7 - H_SIZE_BRI; 
+assign o_x2_brick7 = x_bri7 + H_SIZE_BRI; 
+assign o_y1_brick7 = y_bri7 - L_SIZE_BRI;	
+assign o_y2_brick7 = y_bri7 + L_SIZE_BRI;	
+assign o_x1_brick8 = x_bri8 - H_SIZE_BRI; 
+assign o_x2_brick8 = x_bri8 + H_SIZE_BRI; 
+assign o_y1_brick8 = y_bri8 - L_SIZE_BRI;	
+assign o_y2_brick8 = y_bri8 + L_SIZE_BRI;	
+assign o_x1_brick9 = x_bri9 - H_SIZE_BRI; 
+assign o_x2_brick9 = x_bri9 + H_SIZE_BRI; 
+assign o_y1_brick9 = y_bri9 - L_SIZE_BRI;	
+assign o_y2_brick9 = y_bri9 + L_SIZE_BRI;	
+assign o_x1_brick10 = x_bri10 - H_SIZE_BRI; 
+assign o_x2_brick10= x_bri10 + H_SIZE_BRI; 
+assign o_y1_brick10= y_bri10- L_SIZE_BRI;	
+assign o_y2_brick10= y_bri10+ L_SIZE_BRI;	
+assign o_x1_nav = x_nav - H_SIZE_NAV;  //coordinata x del lato sx della navicella 
+assign o_x2_nav = x_nav + H_SIZE_NAV;  //coordinata x del lato dx della navicella 
+assign o_y1_nav = y_nav -L_SIZE_NAV;  //coordinata y del lato alto della navicella 
+assign o_y2_nav = y_nav + L_SIZE_NAV;  //coordinata y del lato basso della navicella 
+assign o_x1_pal = x_pal - H_SIZE_PAL;	//coordinata x del lato sx della palla
+assign o_x2_pal = x_pal + H_SIZE_PAL;	//coordinata x del lato dx della palla
+assign o_y1_pal = y_pal -H_SIZE_PAL;	//coordinata y del lato alto della palla
+assign o_y2_pal = y_pal + H_SIZE_PAL;	//coordinata y del lato basso della palla
+
+flipflop ff(							//chiamata flipflop
+	.clk(i_clk),						
+	.rst(i_rst),
+	.i_xdirpal(x_dir_pal),			//agli ingressi del flipflop si collega la roba che si vuole campionare
+	.i_ydirpal(y_dir_pal),
+	.i_xnav(x_nav),
+	.i_ynav(y_nav),
+	.i_xpal(x_pal),
+	.i_ypal(y_pal),
+	.i_xbri1(x_bri1),
+	.i_ybri1(y_bri1),
+	.i_xbri2(x_bri2),
+	.i_ybri2(y_bri2),
+	.i_xbri3(x_bri3),
+	.i_ybri3(y_bri3),
+	.i_xbri4(x_bri4),
+	.i_ybri4(y_bri4),
+	.i_xbri5(x_bri5),
+	.i_ybri5(y_bri5),
+	.i_xbri6(x_bri6),
+	.i_ybri6(y_bri6),
+	.i_xbri7(x_bri7),
+	.i_ybri7(y_bri7),
+	.i_xbri8(x_bri8),
+	.i_ybri8(y_bri8),
+	.i_xbri9(x_bri9),
+	.i_ybri9(y_bri9),
+	.i_xbri10(x_bri10),
+	.i_ybri10(y_bri10),
+	.i_life(life),
+	.i_brick(brick),
+	.i_red1(red1),
+	.i_red2(red2),
+	.i_red3(red3),
+	.i_red4(red4),
+	.i_blue5(blue5),
+	.i_blue6(blue6),
+	.i_blue7(blue7),
+	.o_xdirpal(ff_x_dirpal),		//le uscite del flipflop si collegano ai wire creati appositamente (wire che iniziano con "ff")
+	.o_ydirpal(ff_y_dirpal),
+	.o_xnav(ff_x_nav),
+	.o_ynav(ff_y_nav),
+	.o_xpal(ff_x_pal),
+	.o_ypal(ff_y_pal),
+	.o_xbri1(ff_x_bri1),
+	.o_ybri1(ff_y_bri1),
+	.o_xbri2(ff_x_bri2),
+	.o_ybri2(ff_y_bri2),
+	.o_xbri3(ff_x_bri3),
+	.o_ybri3(ff_y_bri3),
+	.o_xbri4(ff_x_bri4),
+	.o_ybri4(ff_y_bri4),
+	.o_xbri5(ff_x_bri5),
+	.o_ybri5(ff_y_bri5),
+	.o_xbri6(ff_x_bri6),
+	.o_ybri6(ff_y_bri6),
+	.o_xbri7(ff_x_bri7),
+	.o_ybri7(ff_y_bri7),
+	.o_xbri8(ff_x_bri8),
+	.o_ybri8(ff_y_bri8),
+	.o_xbri9(ff_x_bri9),
+	.o_ybri9(ff_y_bri9),
+	.o_xbri10(ff_x_bri10),
+	.o_ybri10(ff_y_bri10),
+	.o_life(ff_life),
+	.o_brick(ff_brick),
+	.o_red1(ff_red1),
+	.o_red2(ff_red2),
+	.o_red3(ff_red3),
+	.o_red4(ff_red4),
+	.o_blue5(ff_blue5),
+	.o_blue6(ff_blue6),
+	.o_blue7(ff_blue7)
+);
+
+always@(posedge i_clk)
+		if(i_rst)
+			sreg<=wait1;
+		else sreg<=snext;
+	
+		
+		
+always@(*)	
+		case(sreg)
+			wait1:if(!i_start) snext=s0;
+					else snext=wait1;
+								
+			s0:   if(i_animate&&i_ani_stb) snext=val; 					
+					else snext=s0;
+			val:
+				 if(!ff_life)
+					snext=go;
+				 else if(!ff_brick)
+					snext=win;
+				 else if(!(i_animate&&i_ani_stb))
+						snext=s0;
+				 else snext = val;
+// if(!(i_animate&&i_ani_stb))
+//					begin 
+//						if(life) snext= s0;
+//						else snext=go;
+//						if(brick) snext=val;
+//						else snext=vit;
+//					end
+//					else snext=val;
+			win: if(!i_start) snext=wait1;
+				  else snext=win;
+			go:  if(!i_start) snext=wait1;
+				  else snext=go;
+		endcase
+	
+always@(*)
+	begin
+		x_dir_pal=0;
+		y_dir_pal=0;
+		x_nav=IX_NAV;
+		y_nav=IY_NAV;
+		x_pal=IX_PAL;
+		y_pal=IY_PAL;
+		x_bri1=IX_BRI1;
+		y_bri1=IY_BRI1;
+		x_bri2=IX_BRI2;
+		y_bri2=IY_BRI2;
+		x_bri3=IX_BRI3;
+		y_bri3=IY_BRI3;
+		x_bri4=IX_BRI4;
+		y_bri4=IY_BRI4;
+		x_bri5=IX_BRI5;
+		y_bri5=IY_BRI5;
+		x_bri6=IX_BRI6;
+		y_bri6=IY_BRI6;
+		x_bri7=IX_BRI7;
+		y_bri7=IY_BRI7;
+		x_bri8=IX_BRI8;
+		y_bri8=IY_BRI8;
+		x_bri9=IX_BRI9;
+		y_bri9=IY_BRI9;
+		x_bri10=IX_BRI10;
+		y_bri10=IY_BRI10;
+		life=vite;
+		brick=blocchi;
+		ok=0;
+		ko=0;
+		red1=ROSSO;
+		red2=ROSSO;
+		red3=ROSSO;
+		red4=ROSSO;
+		blue5=BLU;
+		blue6=BLU;
+		blue7=BLU;
+		pin0=IPIN0;pin1=IPIN1;pin2=IPIN2;pin3=IPIN3;pin4=IPIN4;pin5=IPIN5;pin6=IPIN6;
+		
+		case(sreg)
+			wait1:				
+				begin
+					x_dir_pal=0;
+					y_dir_pal=0;
+					x_nav=IX_NAV;
+					y_nav=IY_NAV;
+					x_pal=IX_PAL;
+					y_pal=IY_PAL;
+					x_bri1=IX_BRI1;
+					y_bri1=IY_BRI1;
+					x_bri2=IX_BRI2;
+					y_bri2=IY_BRI2;
+					x_bri3=IX_BRI3;
+					y_bri3=IY_BRI3;
+					x_bri4=IX_BRI4;
+					y_bri4=IY_BRI4;
+					x_bri5=IX_BRI5;
+					y_bri5=IY_BRI5;
+					x_bri6=IX_BRI6;
+					y_bri6=IY_BRI6;
+					x_bri7=IX_BRI7;
+					y_bri7=IY_BRI7;
+					x_bri8=IX_BRI8;
+					y_bri8=IY_BRI8;
+					x_bri9=IX_BRI9;
+					y_bri9=IY_BRI9;
+					x_bri10=IX_BRI10;
+					y_bri10=IY_BRI10;
+					life=vite;
+					brick=blocchi;
+					red1=ROSSO;
+					red2=ROSSO;
+					red3=ROSSO;
+					red4=ROSSO;
+					blue5=BLU;
+					blue6=BLU;
+					blue7=BLU;
+				end
+		val: 
+			begin
+				x_dir_pal=ff_x_dirpal;						//si sovrascrivono le coordinate con la roba che arriva dal flipflop
+				y_dir_pal=ff_y_dirpal;
+				x_nav=ff_x_nav;
+				y_nav=ff_y_nav;
+				x_pal=ff_x_pal;
+				y_pal=ff_y_pal;
+				x_bri1=ff_x_bri1;
+				y_bri1=ff_y_bri1;
+				x_bri2=ff_x_bri2;
+				y_bri2=ff_y_bri2;
+				x_bri3=ff_x_bri3;
+				y_bri3=ff_y_bri3;
+				x_bri4=ff_x_bri4;
+				y_bri4=ff_y_bri4;
+				x_bri5=ff_x_bri5;
+				y_bri5=ff_y_bri5;
+				x_bri6=ff_x_bri6;
+				y_bri6=ff_y_bri6;
+				x_bri7=ff_x_bri7;
+				y_bri7=ff_y_bri7;
+				x_bri8=ff_x_bri8;
+				y_bri8=ff_y_bri8;
+				x_bri9=ff_x_bri9;
+				y_bri9=ff_y_bri9;
+				x_bri10=ff_x_bri10;
+				y_bri10=ff_y_bri10;
+				life=ff_life;
+				brick=ff_brick;
+				red1=ff_red1;
+				red2=ff_red2;
+				red3=ff_red3;
+				red4=ff_red4;
+				blue5=ff_blue5;
+				blue6=ff_blue6;
+				blue7=ff_blue7;
+				
+			case(ff_life)			//se lo vuoi mettere in val non ci vuole nulla
+			
+			1: begin
+					pin0=1'b1;pin1=1'b0;pin2=1'b0;pin3=1'b1;pin4=1'b1;pin5=1'b1;pin6=1'b1;		
+				end	
+			2: begin
+					pin0=1'b0;pin1=1'b0;pin2=1'b1;pin3=1'b0;pin4=1'b0;pin5=1'b1;pin6=1'b1;		
+				end
+			3: begin
+					pin0=1'b0;pin1=1'b0;pin2=1'b0;pin3=1'b0;pin4=1'b1;pin5=1'b1;pin6=1'b0;
+				end	
+			default:
+				begin
+					pin0=1'b0;pin1=1'b0;pin2=1'b0;pin3=1'b0;pin4=1'b0;pin5=1'b0;pin6=1'b0;		//tutti accesi
+				end
+	
+			endcase 
+			x_pal = (x_dir_pal) ? x_pal + 2 : x_pal - 2;  //muove a dx se x_dir è positivo, a sx altrimenti		
+			y_pal = (y_dir_pal) ? y_pal + 2 : y_pal - 2;
+
+			if (i_sx==1 && i_dx==0)
+				begin
+					x_nav =x_nav+12'd 3;							//vai verso dx
+						if (x_nav >= (D_WIDTH-H_SIZE_NAV-12'd 1))		//se la navicella è al margine dx dello schermo
+							x_nav = (D_WIDTH-H_SIZE_NAV-12'd 1);		//rimani dove sei
+				end
+			else if(i_dx==1 && i_sx ==0)
+				begin
+					x_nav = x_nav - 12'd 3;					//vai verso sx
+					if (x_nav <= H_SIZE_NAV+12'd 1)				//se la navicella è al margine sx dello schermo
+						x_nav = H_SIZE_NAV + 12'd 1;					//rimani dove sei
+				end
+			else x_nav=x_nav;
+
+			if((y_pal <= y_bri1+L_SIZE_BRI+H_SIZE_PAL+1)&&(y_pal >= y_bri1+L_SIZE_BRI+H_SIZE_PAL-1))
+				if((x_pal >= x_bri1-H_SIZE_BRI)&&(x_pal <=x_bri1 + H_SIZE_BRI)) //se la palla colpisce brick1 da sotto
+					begin
+					y_dir_pal =1; //la palla va verso il basso
+					red1=red1-1;
+					if(!red1)
+					begin
+						brick = brick - 1;
+						y_bri1=- 12'd 200;
+					end
+					end
+			if((y_pal <= y_bri2+L_SIZE_BRI+H_SIZE_PAL+1)&&(y_pal >= y_bri2+L_SIZE_BRI+H_SIZE_PAL-1))
+				if((x_pal >= x_bri2-H_SIZE_BRI)&&(x_pal <=x_bri2 + H_SIZE_BRI)) //se la palla colpisce brick2 da sotto
+					begin
+					y_dir_pal =1; //la palla va verso il basso
+					red2=red2-1;
+					if(!red2)
+					begin
+						brick = brick - 1;	
+						y_bri2=- 12'd 200;
+					end
+					end
+			if((y_pal <= y_bri3+L_SIZE_BRI+H_SIZE_PAL+1)&&(y_pal >= y_bri3+L_SIZE_BRI+H_SIZE_PAL-1))
+				if((x_pal >= x_bri3-H_SIZE_BRI)&&(x_pal <=x_bri3 + H_SIZE_BRI)) //se la palla colpisce brick3 da sotto
+					begin
+					y_dir_pal =1; //la palla va verso il basso
+					red3=red3-1;
+					if(!red3)
+					begin
+						brick = brick - 1;
+						y_bri3=- 12'd 200;
+					end
+					end
+			if((y_pal <= y_bri4+L_SIZE_BRI+H_SIZE_PAL+1)&&(y_pal >= y_bri4+L_SIZE_BRI+H_SIZE_PAL-1))
+				if((x_pal >= x_bri4-H_SIZE_BRI)&&(x_pal <=x_bri4 + H_SIZE_BRI)) //se la palla colpisce brick4 da sotto
+					begin
+					y_dir_pal =1; //la palla va verso il basso
+					red4=red4-1;
+					if(!red4)
+					begin
+						brick = brick - 1;
+						y_bri4=- 12'd 200;
+					end
+					end
+			if((y_pal <= y_bri5+L_SIZE_BRI+H_SIZE_PAL+1)&&(y_pal >= y_bri5+L_SIZE_BRI+H_SIZE_PAL-1))
+				if((x_pal >= x_bri5-H_SIZE_BRI)&&(x_pal <=x_bri5 + H_SIZE_BRI)) //se la palla colpisce brick5 da sotto
+					begin
+					y_dir_pal =1; //la palla va verso il basso
+					blue5=blue5-1;
+					if(!blue5)
+					begin
+						brick = brick - 1;	
+						y_bri5=- 12'd 200;
+					end
+					end
+			if((y_pal <= y_bri6+L_SIZE_BRI+H_SIZE_PAL+1)&&(y_pal >= y_bri6+L_SIZE_BRI+H_SIZE_PAL-1))
+				if((x_pal >= x_bri6-H_SIZE_BRI)&&(x_pal <=x_bri6 + H_SIZE_BRI)) //se la palla colpisce brick6 da sotto
+					begin
+					y_dir_pal =1; //la palla va verso il basso
+					blue6=blue6-1;
+					if(!blue6)
+						begin	
+							brick = brick - 1;	
+							y_bri6=- 12'd 200;
+						end
+					end	
+			if((y_pal <= y_bri7+L_SIZE_BRI+H_SIZE_PAL+1)&&(y_pal >= y_bri7+L_SIZE_BRI+H_SIZE_PAL-1))
+				if((x_pal >= x_bri7-H_SIZE_BRI)&&(x_pal <=x_bri7 + H_SIZE_BRI)) //se la palla colpisce brick7 da sotto
+					begin
+					y_dir_pal =1; //la palla va verso il basso
+					blue7=blue7-1;
+					if(!blue7)
+					begin
+					brick = brick - 1;	
+					y_bri7=- 12'd 200;
+					end
+					end
+			if((y_pal <= y_bri8+L_SIZE_BRI+H_SIZE_PAL+1)&&(y_pal >= y_bri8+L_SIZE_BRI+H_SIZE_PAL-1))
+				if((x_pal >= x_bri8-H_SIZE_BRI)&&(x_pal <=x_bri8 + H_SIZE_BRI)) //se la palla colpisce brick8 da sotto
+					begin
+					y_dir_pal =1; //la palla va verso il basso
+					y_bri8=- 12'd 200;
+				brick = brick - 1;	
+					end
+			if((y_pal <= y_bri9+L_SIZE_BRI+H_SIZE_PAL+1)&&(y_pal >= y_bri9+L_SIZE_BRI+H_SIZE_PAL-1))
+				if((x_pal >= x_bri9-H_SIZE_BRI)&&(x_pal <=x_bri9 + H_SIZE_BRI)) //se la palla colpisce brick9 da sotto
+					begin
+					y_dir_pal =1; //la palla va verso il basso
+					y_bri9=- 12'd 200;
+				brick = brick - 1;	
+					end
+			if((y_pal <= y_bri10+L_SIZE_BRI+H_SIZE_PAL+1)&&(y_pal >= y_bri10+L_SIZE_BRI+H_SIZE_PAL-1))
+				if((x_pal >= x_bri10-H_SIZE_BRI)&&(x_pal <=x_bri10 + H_SIZE_BRI)) //se la palla colpisce brick10 da sotto
+					begin
+					y_dir_pal =1; //la palla va verso il basso
+					y_bri10=- 12'd 200;	
+					brick = brick - 1;
+					end		
+			if((x_pal<=x_bri1+H_SIZE_BRI+H_SIZE_PAL+1)&&(x_pal>=x_bri1+H_SIZE_BRI+H_SIZE_PAL-1))
+				if((y_pal<=y_bri1+L_SIZE_BRI)&&(y_pal>=y_bri1-L_SIZE_BRI))	//se la palla colpisce brick1 da destra
+					begin
+						x_dir_pal=1;	//la palla va a dx
+						red1=red1-1;
+						if(!red1)
+						begin
+						x_bri1=-12'd 200;	
+						brick = brick - 1;
+						end
+					end
+			if((x_pal<=x_bri2+H_SIZE_BRI+H_SIZE_PAL+1)&&(x_pal>=x_bri2+H_SIZE_BRI+H_SIZE_PAL-1))
+				if((y_pal<=y_bri2+L_SIZE_BRI)&&(y_pal>=y_bri2-L_SIZE_BRI))	//se la palla colpisce brick2 da destra
+					begin
+						x_dir_pal=1;	//la palla va a dx
+						red2=red2-1;
+						if(!red2)
+						begin
+						x_bri2=-12'd 200;
+					brick = brick - 1;	
+					end
+					end
+			if((x_pal<=x_bri3+H_SIZE_BRI+H_SIZE_PAL+1)&&(x_pal>=x_bri3+H_SIZE_BRI+H_SIZE_PAL-1))
+					if((y_pal<=y_bri3+L_SIZE_BRI)&&(y_pal>=y_bri3-L_SIZE_BRI))	//se la palla colpisce brick3 da destra
+						begin
+							x_dir_pal=1;	//la palla va a dx
+						red3=red3-1;
+					if(!red3)	begin	x_bri3=-12'd 200;	
+							brick = brick - 1;
+						end
+						end
+			if((x_pal<=x_bri4+H_SIZE_BRI+H_SIZE_PAL+1)&&(x_pal>=x_bri4+H_SIZE_BRI+H_SIZE_PAL-1))
+					if((y_pal<=y_bri4+L_SIZE_BRI)&&(y_pal>=y_bri4-L_SIZE_BRI))	//se la palla colpisce brick4 da destra
+						begin
+							x_dir_pal=1;	//la palla va a dx
+							red4=red4-1;
+							if(!red4)
+							begin
+							x_bri4=-12'd 200;	
+							brick = brick - 1;
+							end
+						end
+			if((x_pal<=x_bri5+H_SIZE_BRI+H_SIZE_PAL+1)&&(x_pal>=x_bri5+H_SIZE_BRI+H_SIZE_PAL-1))
+					if((y_pal<=y_bri5+L_SIZE_BRI)&&(y_pal>=y_bri5-L_SIZE_BRI))	//se la palla colpisce brick5 da destra
+						begin
+							x_dir_pal=1;	//la palla va a dx
+							blue5=blue5-1;
+							if(!blue5)
+							begin 
+							x_bri5=-12'd 200;	
+							brick = brick - 1;
+							end
+							end
+			if((x_pal<=x_bri6+H_SIZE_BRI+H_SIZE_PAL+1)&&(x_pal>=x_bri6+H_SIZE_BRI+H_SIZE_PAL-1))
+					if((y_pal<=y_bri6+L_SIZE_BRI)&&(y_pal>=y_bri6-L_SIZE_BRI))	//se la palla colpisce brick6 da destra
+						begin
+							x_dir_pal=1;	//la palla va a dx
+							blue6=blue6-1;
+							if(!blue6)
+							begin
+							x_bri6=-12'd 200;	
+							brick = brick - 1;
+							end
+					end
+			if((x_pal<=x_bri7+H_SIZE_BRI+H_SIZE_PAL+1)&&(x_pal>=x_bri7+H_SIZE_BRI+H_SIZE_PAL-1))
+					if((y_pal<=y_bri7+L_SIZE_BRI)&&(y_pal>=y_bri7-L_SIZE_BRI))	//se la palla colpisce brick7 da destra
+						begin
+							x_dir_pal=1;	//la palla va a dx
+							blue7=blue7-1;
+							if(!blue7)
+							begin
+							x_bri7=-12'd 200;	
+							brick = brick - 1;
+							end
+						end
+			if((x_pal<=x_bri8+H_SIZE_BRI+H_SIZE_PAL+1)&&(x_pal>=x_bri8+H_SIZE_BRI+H_SIZE_PAL-1))
+					if((y_pal<=y_bri8+L_SIZE_BRI)&&(y_pal>=y_bri8-L_SIZE_BRI))	//se la palla colpisce brick8 da destra
+						begin
+							x_dir_pal=1;	//la palla va a dx
+							x_bri8=-12'd 200;	
+							brick = brick - 1;
+						end	
+			if((x_pal<=x_bri9+H_SIZE_BRI+H_SIZE_PAL+1)&&(x_pal>=x_bri9+H_SIZE_BRI+H_SIZE_PAL-1))
+					if((y_pal<=y_bri9+L_SIZE_BRI)&&(y_pal>=y_bri9-L_SIZE_BRI))	//se la palla colpisce brick9 da destra
+						begin
+							x_dir_pal=1;	//la palla va a dx
+							x_bri9=-12'd 200;	
+							brick = brick - 1;
+						end
+			if((x_pal<=x_bri10+H_SIZE_BRI+H_SIZE_PAL+1)&&(x_pal>=x_bri10+H_SIZE_BRI+H_SIZE_PAL-1))
+					if((y_pal<=y_bri10+L_SIZE_BRI)&&(y_pal>=y_bri10-L_SIZE_BRI))	//se la palla colpisce brick10 da destra
+						begin
+							x_dir_pal=1;	//la palla va a dx
+							x_bri10=-12'd 200;	
+							brick = brick - 1;
+						end			
+			if((x_pal>=x_bri1-H_SIZE_BRI-H_SIZE_PAL-1)&&(x_pal<=x_bri1-H_SIZE_BRI-H_SIZE_PAL+1))
+				if((y_pal<=y_bri1+L_SIZE_BRI)&&(y_pal>=y_bri1-L_SIZE_BRI))	//se la palla colpisce brick1 da sinistra
+						begin
+							x_dir_pal=0;	//la palla va a sx
+							red1=red1-1;
+							if(!red1)
+							begin
+							x_bri1=-12'd 200;	
+							brick = brick - 1;
+							end
+							end
+			if((x_pal>=x_bri2-H_SIZE_BRI-H_SIZE_PAL-1)&&(x_pal<=x_bri2-H_SIZE_BRI-H_SIZE_PAL+1))
+				if((y_pal<=y_bri2+L_SIZE_BRI)&&(y_pal>=y_bri2-L_SIZE_BRI))	//se la palla colpisce brick2 da sinistra
+						begin
+							x_dir_pal=0;	//la palla va a sx
+							red2=red2-1;
+							if(!red2)
+							begin
+							x_bri2=-12'd 200;	
+							brick = brick - 1;
+							end
+						end
+			if((x_pal>=x_bri3-H_SIZE_BRI-H_SIZE_PAL-1)&&(x_pal<=x_bri3-H_SIZE_BRI-H_SIZE_PAL+1))
+				if((y_pal<=y_bri3+L_SIZE_BRI)&&(y_pal>=y_bri3-L_SIZE_BRI))	//se la palla colpisce brick3 da sinistra
+						begin
+							x_dir_pal=0;	//la palla va a sx
+							red3=red3-1;
+							if(!red3)
+							begin
+							x_bri3=-12'd 200;	
+							brick = brick - 1;
+							end
+						end
+			if((x_pal>=x_bri4-H_SIZE_BRI-H_SIZE_PAL-1)&&(x_pal<=x_bri4-H_SIZE_BRI-H_SIZE_PAL+1))
+				if((y_pal<=y_bri4+L_SIZE_BRI)&&(y_pal>=y_bri4-L_SIZE_BRI))	//se la palla colpisce brick4 da sinistra
+						begin
+							x_dir_pal=0;	//la palla va a sx
+							red4=red4-1;
+							if(!red4)
+							begin
+							x_bri4=-12'd 200;	
+							brick = brick - 1;
+							end
+						end
+			if((x_pal>=x_bri5-H_SIZE_BRI-H_SIZE_PAL-1)&&(x_pal<=x_bri5-H_SIZE_BRI-H_SIZE_PAL+1))
+				if((y_pal<=y_bri5+L_SIZE_BRI)&&(y_pal>=y_bri5-L_SIZE_BRI))	//se la palla colpisce brick5 da sinistra
+						begin
+							x_dir_pal=0;	//la palla va a sx
+							blue5=blue5-1;
+							if(!blue5)
+							begin
+							x_bri5=-12'd 200;	
+							brick = brick - 1;
+							end
+						end
+			if((x_pal>=x_bri6-H_SIZE_BRI-H_SIZE_PAL-1)&&(x_pal<=x_bri6-H_SIZE_BRI-H_SIZE_PAL+1))
+				if((y_pal<=y_bri6+L_SIZE_BRI)&&(y_pal>=y_bri6-L_SIZE_BRI))	//se la palla colpisce brick6 da sinistra
+						begin
+							x_dir_pal=0;	//la palla va a sx
+							blue6=blue6-1;
+							if(!blue6)
+							begin
+							x_bri6=-12'd 200;	
+							brick = brick - 1;
+							end
+						end	
+			if((x_pal>=x_bri7-H_SIZE_BRI-H_SIZE_PAL-1)&&(x_pal<=x_bri7-H_SIZE_BRI-H_SIZE_PAL+1))
+				if((y_pal<=y_bri7+L_SIZE_BRI)&&(y_pal>=y_bri7-L_SIZE_BRI))	//se la palla colpisce brick7 da sinistra
+						begin
+							x_dir_pal=0;	//la palla va a sx
+							blue7=blue7-1;
+							if(!blue7)
+							begin
+							x_bri7=-12'd 200;				
+							brick = brick - 1;
+							end
+						end	
+			if((x_pal>=x_bri8-H_SIZE_BRI-H_SIZE_PAL-1)&&(x_pal<=x_bri8-H_SIZE_BRI-H_SIZE_PAL+1))
+				if((y_pal<=y_bri8+L_SIZE_BRI)&&(y_pal>=y_bri8-L_SIZE_BRI))	//se la palla colpisce brick8 da sinistra
+						begin
+							x_dir_pal=0;	//la palla va a sx
+							x_bri8=-12'd 200;	
+							brick = brick - 1;
+						end
+			if((x_pal>=x_bri9-H_SIZE_BRI-H_SIZE_PAL-1)&&(x_pal<=x_bri9-H_SIZE_BRI-H_SIZE_PAL+1))
+				if((y_pal<=y_bri9+L_SIZE_BRI)&&(y_pal>=y_bri9-L_SIZE_BRI))	//se la palla colpisce brick9 da sinistra
+						begin
+							x_dir_pal=0;	//la palla va a sx
+							x_bri9=-12'd 200;	
+							brick = brick - 1;
+						end	
+			if((x_pal>=x_bri10-H_SIZE_BRI-H_SIZE_PAL-1)&&(x_pal<=x_bri10-H_SIZE_BRI-H_SIZE_PAL+1))
+				if((y_pal<=y_bri10+L_SIZE_BRI)&&(y_pal>=y_bri10-L_SIZE_BRI))	//se la palla colpisce brick10 da sinistra
+						begin
+							x_dir_pal=0;	//la palla va a sx
+							x_bri10=-12'd 200;
+							brick = brick - 1;	
+						end	
+			if((y_pal>=y_bri1-L_SIZE_BRI-H_SIZE_PAL-1)&&(y_pal<=y_bri1-L_SIZE_BRI-H_SIZE_PAL+1))
+				if((x_pal >= x_bri1-H_SIZE_BRI)&&(x_pal <=x_bri1 + H_SIZE_BRI)) //se la palla colpisce brick1 da sopra
+					begin
+						y_dir_pal = 0; //la palla va verso l'alto
+						red1=red1-1;
+						if(!red1)
+						begin
+						y_bri1 = -12'd 200; 
+						brick = brick - 1;
+						end
+						end
+			if((y_pal>=y_bri2-L_SIZE_BRI-H_SIZE_PAL-1)&&(y_pal<=y_bri2-L_SIZE_BRI-H_SIZE_PAL+1))
+				if((x_pal >= x_bri2-H_SIZE_BRI)&&(x_pal <=x_bri2 + H_SIZE_BRI)) //se la palla colpisce brick2 da sopra
+					begin
+						y_dir_pal = 0; //la palla va verso l'alto
+						red2=red2-1;
+						if(!red2)
+						begin
+						y_bri2 =  -12'd 200; 
+						brick = brick - 1;
+						end
+					end
+			if((y_pal>=y_bri3-L_SIZE_BRI-H_SIZE_PAL-1)&&(y_pal<=y_bri3-L_SIZE_BRI-H_SIZE_PAL+1))
+				if((x_pal >= x_bri3-H_SIZE_BRI)&&(x_pal <=x_bri3 + H_SIZE_BRI)) //se la palla colpisce brick3 da sopra
+					begin
+						y_dir_pal = 0; //la palla va verso l'alto
+						red3=red3-1;
+						if(!red3)
+						begin
+						y_bri3 =  -12'd 200;
+						brick = brick - 1;	
+						end
+					end
+			if((y_pal>=y_bri4-L_SIZE_BRI-H_SIZE_PAL-1)&&(y_pal<=y_bri4-L_SIZE_BRI-H_SIZE_PAL+1))
+				if((x_pal >= x_bri4-H_SIZE_BRI)&&(x_pal <=x_bri4 + H_SIZE_BRI)) //se la palla colpisce brick4 da sopra
+					begin
+						y_dir_pal = 0; //la palla va verso l'alto
+						red4=red4-1;
+						if(!red4)
+						begin
+						y_bri4 =  -12'd 200;
+						brick = brick - 1;	
+						end
+					end	
+			if((y_pal>=y_bri5-L_SIZE_BRI-H_SIZE_PAL-1)&&(y_pal<=y_bri5-L_SIZE_BRI-H_SIZE_PAL+1))
+				if((x_pal >= x_bri5-H_SIZE_BRI)&&(x_pal <=x_bri5 + H_SIZE_BRI)) //se la palla colpisce brick5 da sopra
+					begin
+						y_dir_pal = 0; //la palla va verso l'alto
+						blue5=blue5-1;
+						if(!blue5)
+						begin
+						y_bri5 =  -12'd 200;
+						brick = brick - 1;	
+						end
+					end	
+			if((y_pal>=y_bri6-L_SIZE_BRI-H_SIZE_PAL-1)&&(y_pal<=y_bri6-L_SIZE_BRI-H_SIZE_PAL+1))
+				if((x_pal >= x_bri6-H_SIZE_BRI)&&(x_pal <=x_bri6 + H_SIZE_BRI)) //se la palla colpisce brick6 da sopra
+					begin
+						y_dir_pal = 0; //la palla va verso l'alto
+						blue6=blue6-1;
+						if(!blue6)
+						begin
+						y_bri6 =  -12'd 200; 
+						brick = brick - 1;
+						end
+					end	
+			if((y_pal>=y_bri7-L_SIZE_BRI-H_SIZE_PAL-1)&&(y_pal<=y_bri7-L_SIZE_BRI-H_SIZE_PAL+1))
+				if((x_pal >= x_bri7-H_SIZE_BRI)&&(x_pal <=x_bri7 + H_SIZE_BRI)) //se la palla colpisce brick7 da sopra
+					begin
+						y_dir_pal = 0; //la palla va verso l'alto
+						blue7=blue7-1;
+						if(!blue7)
+						begin
+						y_bri7 =  -12'd 200; 
+						brick = brick - 1;
+						end
+					end
+			if((y_pal>=y_bri8-L_SIZE_BRI-H_SIZE_PAL-1)&&(y_pal<=y_bri8-L_SIZE_BRI-H_SIZE_PAL+1))
+				if((x_pal >= x_bri8-H_SIZE_BRI)&&(x_pal <=x_bri8 + H_SIZE_BRI)) //se la palla colpisce brick8 da sopra
+					begin
+						y_dir_pal = 0; //la palla va verso l'alto
+						y_bri8 =  -12'd 200;
+						brick = brick - 1;	
+					end
+			if((y_pal>=y_bri9-L_SIZE_BRI-H_SIZE_PAL-1)&&(y_pal<=y_bri9-L_SIZE_BRI-H_SIZE_PAL+1))
+				if((x_pal >= x_bri9-H_SIZE_BRI)&&(x_pal <=x_bri9 + H_SIZE_BRI)) //se la palla colpisce brick9 da sopra
+					begin
+						y_dir_pal = 0; //la palla va verso l'alto
+						y_bri9 =  -12'd 200;
+						brick = brick - 1;	
+					end	
+			if((y_pal>=y_bri10-L_SIZE_BRI-H_SIZE_PAL-1)&&(y_pal<=y_bri10-L_SIZE_BRI-H_SIZE_PAL+1))
+				if((x_pal >= x_bri10-H_SIZE_BRI)&&(x_pal <=x_bri10 + H_SIZE_BRI)) //se la palla colpisce brick10 da sopra
+					begin
+						y_dir_pal = 0; //la palla va verso l'alto
+						y_bri10 =  -12'd 200;
+						brick = brick - 1;	
+					end
+
+			if(x_pal <= H_SIZE_PAL+1)					//Se la palla è al margine sx dello schermo
+				x_dir_pal=1;							//Si sposta a dx
+			if(x_pal >= (D_WIDTH-H_SIZE_PAL-1))			//se la palla è al margine dx dello schermo
+				x_dir_pal = 0;							//si sposta a sx
+			if (y_pal <= H_SIZE_PAL + 1)		//se y è al margine in alto dello schermo
+				y_dir_pal = 1;				//vai verso il basso
+			if (y_pal>=463)								
+				if ((x_pal >= x_nav-H_SIZE_NAV)&&(x_pal <= x_nav + H_SIZE_NAV))	//se la navicella colpisce la palla
+					y_dir_pal = 0;							//essa rimbalza
+				else 
+					begin								
+						life=life-3'b001;
+						x_pal = IX_PAL;
+						y_pal = IY_PAL;
+						x_nav = IX_NAV;
+//						x_bri1=IX_BRI1;
+//						y_bri1=IY_BRI1;
+//						x_bri2=IX_BRI2;
+//						y_bri2=IY_BRI2;
+//						x_bri3=IX_BRI3;
+//						y_bri3=IY_BRI3;
+					end
+		end
+	
+	s0:
+		begin
+			x_dir_pal=ff_x_dirpal;			//si sovrascrivono le coordinate con la roba che arriva dal flipflop
+			y_dir_pal=ff_y_dirpal;
+			x_nav=ff_x_nav;
+			y_nav=ff_y_nav;
+			x_pal=ff_x_pal;
+			y_pal=ff_y_pal;
+			x_bri1=ff_x_bri1;
+			y_bri1=ff_y_bri1;
+			x_bri2=ff_x_bri2;
+			y_bri2=ff_y_bri2;
+			x_bri3=ff_x_bri3;
+			y_bri3=ff_y_bri3;
+			x_bri4=ff_x_bri4;
+			y_bri4=ff_y_bri4;
+			x_bri5=ff_x_bri5;
+			y_bri5=ff_y_bri5;
+			x_bri6=ff_x_bri6;
+			y_bri6=ff_y_bri6;
+			x_bri7=ff_x_bri7;
+			y_bri7=ff_y_bri7;
+			x_bri8=ff_x_bri8;
+			y_bri8=ff_y_bri8;
+			x_bri9=ff_x_bri9;
+			y_bri9=ff_y_bri9;
+			x_bri10=ff_x_bri10;
+			y_bri10=ff_y_bri10;
+			life=ff_life;
+			brick=ff_brick;
+			red1=ff_red1;
+			red2=ff_red2;
+			red3=ff_red3;
+			red4=ff_red4;
+			blue5=ff_blue5;
+			blue6=ff_blue6;
+			blue7=ff_blue7;
+		end
+		
+		win:begin
+//								x_dir_pal=0;
+//								y_dir_pal=0;
+//								x_nav=IX_NAV;
+//								y_nav=IY_NAV;
+//								x_pal=IX_PAL;
+//								y_pal=IY_PAL;
+//								x_bri1=IX_BRI1;
+//								y_bri1=IY_BRI1;
+//								x_bri2=IX_BRI2;
+//								y_bri2=IY_BRI2;
+//								x_bri3=IX_BRI3;
+//								y_bri3=IY_BRI3;
+//								life=vite;
+//								brick=blocchi;
+							ok=1;
+							case(ff_life)			//se lo vuoi mettere in val non ci vuole nulla
+			
+			1: begin
+					pin0=1'b1;pin1=1'b0;pin2=1'b0;pin3=1'b1;pin4=1'b1;pin5=1'b1;pin6=1'b1;		
+				end	
+			2: begin
+					pin0=1'b0;pin1=1'b0;pin2=1'b1;pin3=1'b0;pin4=1'b0;pin5=1'b1;pin6=1'b1;		
+				end
+			3: begin
+					pin0=1'b0;pin1=1'b0;pin2=1'b0;pin3=1'b0;pin4=1'b1;pin5=1'b1;pin6=1'b0;
+				end	
+			default:
+				begin
+					pin0=1'b0;pin1=1'b0;pin2=1'b0;pin3=1'b0;pin4=1'b0;pin5=1'b0;pin6=1'b0;		//tutti accesi
+				end
+				endcase
+			end
+		go:begin
+//								x_dir_pal=0;
+//								y_dir_pal=0;
+//								x_nav=IX_NAV+50;
+//								y_nav=IY_NAV-10;
+//								x_pal=IX_PAL+20;
+//								y_pal=IY_PAL+20;
+//								x_bri1=IX_BRI1+12;
+//								y_bri1=IY_BRI1+40;
+//								x_bri2=IX_BRI2-40;
+//								y_bri2=IY_BRI2-10;
+//								x_bri3=IX_BRI3+5;
+//								y_bri3=IY_BRI3+20;
+//								life=vite;
+//								brick=blocchi;
+								ko=1;
+								
+					pin0=1'b0;pin1=1'b0;pin2=1'b0;pin3=1'b0;pin4=1'b0;pin5=1'b0;pin6=1'b1;		//tranne 6 sono tutti accesi
+				
+						end
+	   default:begin
+								x_dir_pal=0;
+								y_dir_pal=0;
+								x_nav=IX_NAV;
+								y_nav=IY_NAV;
+								x_pal=IX_PAL;
+								y_pal=IY_PAL;
+								x_bri1=IX_BRI1;
+								y_bri1=IY_BRI1;
+								x_bri2=IX_BRI2;
+								y_bri2=IY_BRI2;
+								x_bri3=IX_BRI3;
+								y_bri3=IY_BRI3;
+								x_bri4=IX_BRI4;
+								y_bri4=IY_BRI4;
+								x_bri5=IX_BRI5;
+								y_bri5=IY_BRI5;
+								x_bri6=IX_BRI6;
+								y_bri6=IY_BRI6;
+								x_bri7=IX_BRI7;
+								y_bri7=IY_BRI7;
+								x_bri8=IX_BRI8;
+								y_bri8=IY_BRI8;
+								x_bri9=IX_BRI9;
+								y_bri9=IY_BRI9;
+								x_bri10=IX_BRI10;
+								y_bri10=IY_BRI10;
+								life=vite;
+								brick=blocchi;
+								red1=ROSSO;
+								red2=ROSSO;
+								red3=ROSSO;
+								red4=ROSSO;
+								blue5=BLU;
+								blue6=BLU;
+								blue7=BLU;
+				end
+			
+	endcase
+	
+end			
+	
+endmodule

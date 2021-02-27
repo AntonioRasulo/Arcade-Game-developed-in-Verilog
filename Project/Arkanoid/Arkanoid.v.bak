@@ -1,0 +1,230 @@
+module Arkanoid(
+	input CLK,			//clock della scheda
+	input RST_BTN,		//bottone di reset
+	input DX,			//bottone dx, la navicella va a destra
+	input SX,			//bottone sx, la navicella va a sinistra
+	input start,		//pulsante di start
+	output VGA_HS_O,	//sync orizzontale
+	output VGA_VS_O,	//sync verticale
+	output VGA_RED,	//VGA_R[3] per il monitor VGA
+	output VGA_GED,	//VGA_G[3] per il monitor VGA
+	output VGA_BED,	//VGA_B[3] per il monitor VGA
+	output RED,			//VGA_R[2] per il monitor VGA	
+	output GREEN,		//VGA_G[2] per il monitor VGA
+	output BLUE,		//VGA_B[2] per il monitor VGA
+	output [6:0] HEX0	//display numeri della scheda
+);
+	
+	reg RED;
+	reg GREEN;
+	reg BLUE;
+	
+	wire rst = ~RST_BTN;
+	wire dx=DX;
+	wire sx=SX;
+	wire [9:0] x;	//posizione x del pixel, 10 bit, range: 0-1023
+	wire [8:0] y;	//posizione y del pixel, 9 bit, range: 0-511
+	wire animate;	//è alto quando vengono disegnati tutti i pixel
+	
+	//generazione clock a 25 MHz per i pixel
+	reg [15:0] cnt = 0;
+	reg pix_stb = 0;
+	always @(posedge CLK)
+		{pix_st, cnt} <= cnt + 16'h8000; //divisione per 2: (2^16)/2 = 0x8000
+	
+	vga640x480 display (
+		.i_clk(CLK),
+		.i_pix_stb(pix_stb),
+		.i_rst(rst),
+		.o_hs(VGA_HS_O),
+		.o_vs(VGA_VS_O),
+		.o_x(x),
+		.o_y(y),
+		.o_animate(animate)
+	);
+	
+	 wire ok,ko;							//partita persa o vinta
+	 wire navicella;						
+	 wire [11:0] nav_x1,nav_x2;		//lati laterali della navicella
+	 wire [11:0] nav_y1,nav_y2;		//lati sopra e sotto navicella
+	 wire palla;
+	 wire [11:0] pal_x1,pal_x2;		//lati laterali della palla
+	 wire [11:0] pal_y1,pal_y2;		//lati sopra e sotto della palla
+	 wire [11:0] bri1_x1,bri1_x2;		//lati laterali del brick1
+	 wire [11:0] bri1_y1,bri1_y2;		//lati sopra e sotto brick1
+	 wire [11:0] bri2_x1,bri2_x2;		//lati laterali del brick2
+	 wire [11:0] bri2_y1,bri2_y2;		//lati sopra e sotto brick2
+	 wire [11:0] bri3_x1,bri3_x2;		//lati laterali del brick3
+	 wire [11:0] bri3_y1,bri3_y2;		//lati sopra e sotto brick3
+	 wire [11:0] bri4_x1,bri4_x2;		
+	 wire [11:0] bri4_y1,bri4_y2;		
+	 wire [11:0] bri5_x1,bri5_x2;		
+	 wire [11:0] bri5_y1,bri5_y2;		
+	 wire [11:0] bri6_x1,bri6_x2;	
+	 wire [11:0] bri6_y1,bri6_y2;	
+	 wire [11:0] bri7_x1,bri7_x2;	
+	 wire [11:0] bri7_y1,bri7_y2;
+	 wire [11:0] bri8_x1,bri8_x2;	
+	 wire [11:0] bri8_y1,bri8_y2; 
+	 wire [11:0] bri9_x1,bri9_x2;	
+	 wire [11:0] bri9_y1,bri9_y2;
+	 wire [11:0] bri10_x1,bri10_x2;	
+	 wire [11:0] bri10_y1,bri10_y2; 
+	 wire brick1,brick2,brick3,brick4,brick5,brick6,brick7,brick8,brick9,brick10;
+	 reg B20,B21,B22,B23,B24,B25,B26,B27,B28,B29,B30,B31;			//scritte partita vinta o persa
+	 wire pin0, pin1, pin2, pin3, pin4, pin5, pin6;					//display numeri scheda
+
+	navicellapalla np(
+		.i_clk(CLK),
+		.i_ani_stb(pix_stb),
+		.i_rst(rst),
+		.i_animate(animate),
+		.i_dx(dx),
+		.i_sx(sx),
+		.i_start(start),
+		.o_x1_nav(nav_x1),
+		.o_x2_nav(nav_x2),
+		.o_y1_nav(nav_y1),
+		.o_y2_nav(nav_y2),
+		.o_x1_pal(pal_x1),
+		.o_x2_pal(pal_x2),
+		.o_y1_pal(pal_y1),
+		.o_y2_pal(pal_y2),
+		.o_x1_brick1(bri1_x1),
+		.o_x2_brick1(bri1_x2),
+		.o_y1_brick1(bri1_y1),
+		.o_y2_brick1(bri1_y2),
+		.o_x1_brick2(bri2_x1),
+		.o_x2_brick2(bri2_x2),
+		.o_y1_brick2(bri2_y1),
+		.o_y2_brick2(bri2_y2),
+		.o_x1_brick3(bri3_x1),
+		.o_x2_brick3(bri3_x2),
+		.o_y1_brick3(bri3_y1),
+		.o_y2_brick3(bri3_y2),
+		.o_x1_brick4(bri4_x1),
+		.o_x2_brick4(bri4_x2),
+		.o_y1_brick4(bri4_y1),
+		.o_y2_brick4(bri4_y2),
+		.o_x1_brick5(bri5_x1),
+		.o_x2_brick5(bri5_x2),
+		.o_y1_brick5(bri5_y1),
+		.o_y2_brick5(bri5_y2),
+		.o_x1_brick6(bri6_x1),
+		.o_x2_brick6(bri6_x2),
+		.o_y1_brick6(bri6_y1),
+		.o_y2_brick6(bri6_y2),
+		.o_x1_brick7(bri7_x1),
+		.o_x2_brick7(bri7_x2),
+		.o_y1_brick7(bri7_y1),
+		.o_y2_brick7(bri7_y2),
+		.o_x1_brick8(bri8_x1),
+		.o_x2_brick8(bri8_x2),
+		.o_y1_brick8(bri8_y1),
+		.o_y2_brick8(bri8_y2),
+		.o_x1_brick9(bri9_x1),
+		.o_x2_brick9(bri9_x2),
+		.o_y1_brick9(bri9_y1),
+		.o_y2_brick9(bri9_y2),
+		.o_x1_brick10(bri10_x1),
+		.o_x2_brick10(bri10_x2),
+		.o_y1_brick10(bri10_y1),
+		.o_y2_brick10(bri10_y2),
+		.ok(ok),
+		.ko(ko),
+		.pin0(pin0), .pin1(pin1), .pin2(pin2), .pin3(pin3), .pin4(pin4), .pin5(pin5), .pin6(pin6)
+	);
+	
+	assign navicella =((x > nav_x1) & (y > nav_y1) &						//si occupa di disegnare gli oggetti
+        (x < nav_x2) & (y < nav_y2)) ? 1'b1 : 1'b0;
+	assign palla =((x > pal_x1) & (y > pal_y1) &
+        (x < pal_x2) & (y < pal_y2)) ? 1'b1 : 1'b0;
+	assign brick1 =((x > bri1_x1) & (y > bri1_y1) &
+        (x < bri1_x2) & (y < bri1_y2)) ? 1'b1 : 1'b0;
+	assign brick2 =((x > bri2_x1) & (y > bri2_y1) &
+        (x < bri2_x2) & (y < bri2_y2)) ? 1'b1 : 1'b0;
+	assign brick3 =((x > bri3_x1) & (y > bri3_y1) &
+        (x < bri3_x2) & (y < bri3_y2)) ? 1'b1 : 1'b0;
+	assign brick4 =((x > bri4_x1) & (y > bri4_y1) &
+        (x < bri4_x2) & (y < bri4_y2)) ? 1'b1 : 1'b0;
+	assign brick5 =((x > bri5_x1) & (y > bri5_y1) &
+        (x < bri5_x2) & (y < bri5_y2)) ? 1'b1 : 1'b0;
+	assign brick6 =((x > bri6_x1) & (y > bri6_y1) &
+        (x < bri6_x2) & (y < bri6_y2)) ? 1'b1 : 1'b0;
+	assign brick7 =((x > bri7_x1) & (y > bri7_y1) &
+        (x < bri7_x2) & (y < bri7_y2)) ? 1'b1 : 1'b0;
+	assign brick8 =((x > bri8_x1) & (y > bri8_y1) &
+        (x < bri8_x2) & (y < bri8_y2)) ? 1'b1 : 1'b0;
+	assign brick9 =((x > bri9_x1) & (y > bri9_y1) &
+        (x < bri9_x2) & (y < bri9_y2)) ? 1'b1 : 1'b0;
+	assign brick10 =((x > bri10_x1) & (y > bri10_y1) &
+        (x < bri10_x2) & (y < bri10_y2)) ? 1'b1 :1'b0;
+	 
+	assign VGA_RED = palla||navicella||brick1||brick2||brick3||brick4;		//si occupa di colorare gli oggetti
+	assign VGA_GED = palla||brick8||brick9||brick10;
+	assign VGA_BED = palla||brick5||brick6||brick7;
+	 
+	assign HEX0[0] = pin0;		//si occupa del display 7 segmenti
+	assign HEX0[1] = pin1;
+	assign HEX0[2] = pin2;
+	assign HEX0[3] = pin3;
+	assign HEX0[4] = pin4;
+	assign HEX0[5] = pin5;
+	assign HEX0[6] = pin6;
+	
+	always@(*)						//si occupa di disegnare e colorare OK E KO per vittoria o sconfitta
+	if(ok)
+	begin
+		B21<=((x>216)&(x<236)&(y>208)&(y<272))?1'b1:1'b0;
+		B20<=((x>236)&(x<300)&(y>188)&(y<208))?1'b1:1'b0;
+		B22<=((x>236)&(x<300)&(y>272)&(y<292))?1'b1:1'b0;
+		B23<=((x>300)&(x<320)&(y>208)&(y<272))?1'b1:1'b0;
+		B24<=((x>360)&(x<380)&(y>188)&(y<292))?1'b1:1'b0;
+		B25<=((x>380)&(x<398)&(y>231)&(y<249))?1'b1:1'b0;        
+		B26<=((x>398)&(x<416)&(y>213)&(y<231))?1'b1:1'b0;
+		B27<=((x>416)&(x<434)&(y>195)&(y<213))?1'b1:1'b0;
+		B28<=((x>398)&(x<416)&(y>249)&(y<267))?1'b1:1'b0;
+		B29<=((x>416)&(x<434)&(y>267)&(y<285))?1'b1:1'b0;
+		B30<=((x>434)&(x<452)&(y>285)&(y<303))?1'b1:1'b0;
+		B31<=((x>434)&(x<452)&(y>177)&(y<195))?1'b1:1'b0;
+		RED<= B20||B21||B22||B23;
+		BLUE<= B24||B25||B26||B27||B28||B29||B30||B31;
+	end
+	else if(ko)
+		begin
+		B20<=((x>248)&(x<268)&(y>188)&(y<292))?1'b1:1'b0;
+		B21<=((x>268)&(x<288)&(y>231)&(y<249))?1'b1:1'b0;
+		B22<=((x>288)&(x<308)&(y>213)&(y<231))?1'b1:1'b0;
+		B23<=((x<308)&(x<328)&(y>195)&(y<213))?1'b1:1'b0;
+		B24<=((x>328)&(x<348)&(y>177)&(y<195))?1'b1:1'b0;
+		B25<=((x>288)&(x<308)&(y>249)&(y<267))?1'b1:1'b0;
+		B26<=((x<308)&(x<328)&(y>267)&(y<285))?1'b1:1'b0;
+		B27<=((x>328)&(x<348)&(y>285)&(y<303))?1'b1:1'b0;
+		B28<=((x>360)&(x<380)&(y>188)&(y<302))?1'b1:1'b0;
+		B29<=((x>380)&(x<444)&(y>168)&(y<188))?1'b1:1'b0;
+		B31<=((x>444)&(x<464)&(y>188)&(y<302))?1'b1:1'b0;
+		B30<=((x>380)&(x<444)&(y>292)&(y<322))?1'b1:1'b0;
+		BLUE<=B20||B21||B22||B23||B24||B25||B26||B27;
+		RED<= B28||B29||B30||B31;
+		end
+	else			//l'inferred latch lo dà perchè non c'è la condizione di default praticamente...
+		begin
+		B20<=1'b0;
+		B21<=1'b0;
+		B22<=1'b0;
+		B23<=1'b0;
+		B24<=1'b0;
+		B25<=1'b0;
+		B26<=1'b0;
+		B27<=1'b0;
+		B28<=1'b0;
+		B29<=1'b0;
+		B31<=1'b0;
+		B30<=1'b0;
+		BLUE<=1'b0;
+		RED<=1'b0;
+		end
+	 
+endmodule
+	
+	

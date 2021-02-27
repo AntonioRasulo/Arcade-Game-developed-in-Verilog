@@ -1,0 +1,2 @@
+Info (10281): Verilog HDL Declaration information at Arkanoid.v(4): object "DX" differs only in case from object "dx" in the same scope
+Info (10281): Verilog HDL Declaration information at Arkanoid.v(5): object "SX" differs only in case from object "sx" in the same scope
